@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 虚拟粒子 v10.3 (多端适配版)</title>
+    <title>AI 虚拟粒子 v10.7</title>
     
     <style>
         body { margin: 0; overflow: hidden; background-color: #020205; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -19,7 +19,7 @@
         video { width: 100%; height: 100%; object-fit: cover; }
 
         #ui-container {
-            position: absolute; top: 20px; right: 20px;
+            position: absolute; bottom: 20px; right: 20px; top: auto;
             background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(16px);
             padding: 24px; border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -27,10 +27,9 @@
             gap: 16px; width: 260px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             transition: all 0.3s ease;
-            max-height: 90vh; /* 防止UI超出屏幕 */
-            overflow-y: auto; /* 允许小屏滚动 */
+            max-height: 90vh; 
+            overflow-y: auto; 
         }
-        /* 隐藏滚动条但保留功能 */
         #ui-container::-webkit-scrollbar { width: 0; height: 0; }
 
         h3 { margin: 0; font-size: 14px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 1px; }
@@ -74,26 +73,23 @@
         #status { font-size: 12px; color: #00d2ff; text-align: center; margin-top: 5px; min-height: 16px; }
         #loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00d2ff; font-size: 18px; z-index: 200; pointer-events: none; transition: opacity 0.5s; text-align: center; width: 100%; }
 
-        /* ================= 移动端适配样式 ================= */
         @media screen and (max-width: 768px) {
             #ui-container {
-                top: 10px; right: 10px; left: 10px; /* 撑满宽度，留边距 */
-                width: auto;
+                top: auto; left: auto;
+                bottom: 20px; right: 20px;
+                width: 260px;
+                transform: scale(0.5);
+                transform-origin: bottom right;
                 padding: 16px;
                 gap: 12px;
             }
             #video-container {
-                width: 120px; height: 90px; /* 缩小预览窗口 */
+                width: 120px; height: 90px; 
                 bottom: 15px; left: 15px;
             }
             .grid-buttons {
-                grid-template-columns: repeat(3, 1fr); /* 手机上一行3个按钮 */
+                grid-template-columns: repeat(2, 1fr); 
             }
-            #btn-hand { grid-column: span 3 !important; } /* 手部追踪按钮占满一行 */
-            
-            h3 { font-size: 12px; }
-            button { padding: 10px; font-size: 12px; }
-            #status { font-size: 11px; }
         }
     </style>
 
@@ -109,7 +105,7 @@
     <div id="ui-container">
         <h3>系统设置</h3>
         <div class="switch-container">
-            <span class="switch-label">自动旋转 (静态)</span>
+            <span class="switch-label">自动旋转</span>
             <label class="toggle-switch">
                 <input type="checkbox" id="rotationToggle" checked>
                 <span class="slider"></span>
@@ -147,7 +143,6 @@
         const HAND_SCALE_BASE = 180; 
         const ARM_LENGTH = 400; 
         
-        // 设备检测变量
         let isMobileDevice = false;
 
         let scene, camera, renderer, particles, geometry, material;
@@ -169,14 +164,11 @@
         let saturnStorms = []; 
         let stormParticlesData = []; 
 
-        // ================= 宇宙风暴变量 (Type 1) =================
         let universeStorms = []; 
         let universeStormParticlesData = []; 
 
-        // ================= 宇宙漩涡星系变量 (Type 3) =================
         let spiralGalaxies = [];
         let spiralGalaxyParticlesData = [];
-        // =========================================================
 
         const HAND_CONNECTIONS = [
             [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
@@ -184,7 +176,6 @@
             [0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]
         ];
 
-        // ================= 设备检测函数 =================
         function detectDevice() {
             const ua = navigator.userAgent.toLowerCase();
             isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
@@ -192,7 +183,6 @@
             return isMobileDevice;
         }
 
-        // ================= Three.js 初始化 =================
         function initThree() {
             scene = new THREE.Scene();
             scene.fog = new THREE.FogExp2(0x020205, 0.0015);
@@ -242,7 +232,7 @@
             animate();
         }
 
-        // ================= 核心形状计算逻辑 (保持原样) =================
+        // ================= 核心形状计算逻辑 =================
         function calculateStaticShape(type) {
             const RENDER_SIZE = 180;
             if (type === 'universe') {
@@ -257,26 +247,51 @@
                 baseR = 0.9; baseG = 0.82; baseB = 0.65; 
             }
 
-            // 土星风暴初始化
-            const STORM_PARTICLE_COUNT = 3000; 
+            // ================== 土星逻辑修改区 ==================
+            const STORM_PARTICLE_COUNT = 12000; 
+            const HEXAGON_PARTICLE_COUNT = 8000; 
             const STORM_COUNT = 6;
             
             if (type === 'saturn') {
                 saturnStorms = [];
                 stormParticlesData = [];
                 for(let s=0; s<STORM_COUNT; s++) {
-                    const isNorth = (s < 3); 
-                    const basePhi = isNorth ? (0.4 + Math.random()*0.6) : (2.1 + Math.random()*0.6);
-                    saturnStorms.push({
-                        idx: s,
-                        isNorth: isNorth,
-                        phi: basePhi,
-                        theta: Math.random() * Math.PI * 2,
-                        radius: 12 + Math.random() * 10,
-                        eyeRadius: 3 + Math.random() * 2,
-                        speed: (0.5 + Math.random() * 1.5) * (isNorth ? 1 : -1),
-                        driftSpeed: (Math.random() - 0.5) * 0.2
-                    });
+                    if (s === 0) {
+                        // 0号风暴：北极六边形 (静态属性)
+                        saturnStorms.push({
+                            idx: s,
+                            type: 'hexagon', 
+                            // 极度缓慢的自转 
+                            speed: 0.12, 
+                        });
+                    } else {
+                        // 其他随机小风暴
+                        const isNorth = (s < 3); 
+                        let basePhi;
+                        
+                        // 纬度限制逻辑
+                        if (isNorth) {
+                            const minPhi = Math.PI / 4; 
+                            const maxPhi = Math.PI / 2;
+                            basePhi = minPhi + Math.random() * (maxPhi - minPhi);
+                        } else {
+                            const minPhi = Math.PI / 2;
+                            const maxPhi = Math.PI / 2 + Math.PI / 6;
+                            basePhi = minPhi + Math.random() * (maxPhi - minPhi);
+                        }
+
+                        saturnStorms.push({
+                            idx: s,
+                            type: 'circle',
+                            isNorth: isNorth,
+                            phi: basePhi,
+                            theta: Math.random() * Math.PI * 2,
+                            radius: 12 + Math.random() * 10,
+                            eyeRadius: 3 + Math.random() * 2,
+                            speed: (0.5 + Math.random() * 1.5) * (isNorth ? 1 : -1),
+                            driftSpeed: (Math.random() - 0.5) * 0.2
+                        });
+                    }
                 }
             }
             
@@ -292,22 +307,50 @@
 
                 if (type === 'saturn') {
                     if (i < STORM_PARTICLE_COUNT) {
-                        const stormIdx = i % STORM_COUNT;
+                        const isHexagonParticle = (i < HEXAGON_PARTICLE_COUNT); 
+                        const stormIdx = isHexagonParticle ? 0 : (1 + (i % (STORM_COUNT - 1)));
                         const storm = saturnStorms[stormIdx];
-                        const localR = storm.eyeRadius + Math.random() * (storm.radius - storm.eyeRadius);
-                        const localAngle = Math.random() * Math.PI * 2;
                         
-                        stormParticlesData[i] = {
-                            stormIdx: stormIdx,
-                            localR: localR,
-                            localAngle: localAngle,
-                            yOffset: (Math.random() - 0.5) * 3
-                        };
+                        let localR, localAngle, yOffset;
+                        localAngle = Math.random() * Math.PI * 2;
+                        
+                        // 数据存储结构
+                        let particleData = { stormIdx: stormIdx, localAngle: localAngle };
+
+                        if (storm.type === 'hexagon') {
+                            // --- 北极六边形粒子生成逻辑 (Spherical) ---
+                            const rnd = Math.random();
+                            const maxPhi = 0.28; 
+                            const basePhi = Math.sqrt(rnd) * maxPhi;
+
+                            particleData.basePhi = basePhi;
+                            particleData.isHexagon = true;
+                            
+                            particleData.altitudeNoise = (Math.random() - 0.5) * 1.5; 
+
+                            if (Math.random() > 0.4) { 
+                                tr = 0.6 + Math.random()*0.1; tg = 0.8 + Math.random()*0.1; tb = 1.0; 
+                            } else { 
+                                tr = 0.95; tg = 0.9 + Math.random()*0.05; tb = 0.6 + Math.random()*0.1;
+                            }
+                            
+                            if (basePhi < 0.05) { tr*=0.5; tg*=0.6; tb*=0.7; }
+
+                        } else {
+                            localR = storm.eyeRadius + Math.random() * (storm.radius - storm.eyeRadius);
+                            yOffset = (Math.random() - 0.5) * 3;
+                            tr = 1.0; tg = 1.0; tb = 1.0;
+                            particleData.localR = localR;
+                            particleData.yOffset = yOffset;
+                        }
+
+                        stormParticlesData[i] = particleData;
                         x = 0; y = 0; z = 0; 
-                        tr = 1.0; tg = 1.0; tb = 1.0;
                     } else {
-                        tr = baseR; tg = baseG; tb = baseB;
-                        const isRing = Math.random() > 0.45; 
+                        // ================== 2. 调整行星主体粒子分配 ==================
+                        // 增加行星主体粒子的比例 (从 55% -> 60% 分配给主体)，使条纹更致密
+                        const isRing = Math.random() > 0.60; // 之前是 0.45，现在更难生成Ring，即更多粒子给Body
+
                         if (isRing) {
                             const minR = 1.2; const maxR = 2.3;
                             let rNorm = minR + Math.random() * (maxR - minR);
@@ -331,27 +374,39 @@
                             z = rRing * Math.sin(tRing); 
                             y = (Math.random()-0.5) * 3;
 
-                            tr *= brightness; tg *= brightness; tb *= brightness;
+                            tr = baseR * brightness; tg = baseG * brightness; tb = baseB * brightness;
                             const noise = (Math.random() - 0.5) * 0.15;
                             tr += noise; tg += noise; tb += noise;
 
                         } else {
+                            // ================== 1. 明显条纹逻辑修正 (Body) ==================
                             const rPlanet = RENDER_SIZE;
                             const theta = Math.random() * Math.PI * 2;
                             const phi = Math.acos(2 * Math.random() - 1);
                             let modR = rPlanet;
-                            if (phi < 0.25) { 
-                                const hexEffect = 0.08 * Math.sin(phi * Math.PI * 4); 
-                                modR = rPlanet * (1.0 + hexEffect * Math.cos(6 * theta));
-                                tr *= 0.85; tg *= 0.85; tb *= 0.9; 
-                            }
+                            
                             x = modR * Math.sin(phi) * Math.cos(theta);
                             y = modR * Math.cos(phi);
                             z = modR * Math.sin(phi) * Math.sin(theta);
-                            const bandPhase = y * 0.18 + Math.random()*0.05;
+                            
+                            // 明暗条纹生成逻辑 (Bands and Zones)
+                            const bandPhase = y * 0.25; // 增加频率使条纹更细致
                             const band = Math.sin(bandPhase); 
-                            if (band > 0.35) { tr += 0.15; tg += 0.15; tb += 0.1; } 
-                            else if (band < -0.35) { tr -= 0.12; tg -= 0.12; tb -= 0.08; }
+                            
+                            if (band > 0) { 
+                                // 区 (Zone): 亮色，上升气流，氨冰云 (奶油色/白色)
+                                tr = 1.0; tg = 0.95; tb = 0.85; 
+                                // 增加一点随机扰动
+                                const n = Math.random() * 0.1;
+                                tr += n; tg += n; tb += n;
+                            } else { 
+                                // 带 (Belt): 暗色，下沉气流 (深褐色/橙色)
+                                // 基础色调偏暗
+                                tr = 0.7; tg = 0.55; tb = 0.4;
+                                // 显著降低亮度以制造"暗条纹"效果
+                                const dim = 0.5 + Math.random() * 0.2; 
+                                tr *= dim; tg *= dim; tb *= dim;
+                            }
                         }
                     }
                 } else if (type === 'flower') {
@@ -453,13 +508,11 @@
             }
         }
 
-        // ================= 3. 宇宙算法 (丝带粒子增强版) (保持原样) =================
         function calculateUniverse() {
             const RENDER_SIZE = 220;
             const bounds = { a: RENDER_SIZE * 2.5, b: RENDER_SIZE * 1.5, c: RENDER_SIZE * 2.2 }; 
             let particleIdx = 0;
 
-            // ================== Type 1: 风暴 (保持不变) ==================
             universeStorms = [];
             universeStormParticlesData = [];
             const UNIVERSE_STORM_COUNT = 4;
@@ -512,9 +565,8 @@
                 }
             }
 
-            // ================== Type 2: 彩虹丝带星云  ==================
             const RIBBON_COUNT = 2;
-            const PARTICLES_PER_RIBBON = 10000; // 粒子数
+            const PARTICLES_PER_RIBBON = 10000; 
             for (let r = 0; r < RIBBON_COUNT; r++) {
                 const startX = (Math.random() - 0.5) * bounds.a * 1.5; const endX = (Math.random() - 0.5) * bounds.a * 1.5;
                 const startZ = (Math.random() - 0.5) * bounds.c * 1.5; const endZ = (Math.random() - 0.5) * bounds.c * 1.5;
@@ -531,9 +583,7 @@
                     let py = centerY + Math.sin(t * Math.PI * waveFreq) * waveAmp + Math.cos(t * Math.PI * waveFreq * 1.5) * (waveAmp*0.5);
                     
                     const currentWidth = baseWidth * (0.4+0.6*Math.sin(t * Math.PI)); 
-                    
                     const widthRandomFactor = (Math.random() - 0.5);
-                    
                     px += widthRandomFactor * currentWidth; 
                     py += (Math.random() - 0.5) * currentWidth * 0.3; 
                     pz += (Math.random() - 0.5) * currentWidth * 0.5;
@@ -541,11 +591,7 @@
                     targetPositions[particleIdx * 3] = px; targetPositions[particleIdx * 3 + 1] = py; targetPositions[particleIdx * 3 + 2] = pz;
                     
                     let hue;
-                    if (r === 0) {
-                         hue = baseHue + t * 0.4; 
-                    } else {
-                         hue = baseHue + (widthRandomFactor + 0.5) * 0.4;
-                    }
+                    if (r === 0) { hue = baseHue + t * 0.4; } else { hue = baseHue + (widthRandomFactor + 0.5) * 0.4; }
                     
                     const ribbonColor = new THREE.Color().setHSL(hue % 1.0, 0.8, 0.6);
                     targetColors[particleIdx * 3] = ribbonColor.r; targetColors[particleIdx * 3 + 1] = ribbonColor.g; targetColors[particleIdx * 3 + 2] = ribbonColor.b;
@@ -553,7 +599,6 @@
                 }
             }
 
-            // ================== Type 3: 漩涡状星系 ==================
             spiralGalaxies = [];
             spiralGalaxyParticlesData = [];
             const GALAXY_COUNT = 5; 
@@ -565,11 +610,8 @@
                 const centerZ = (Math.random() - 0.5) * bounds.c * 1.2;
                 
                 const radius = 350 + Math.random() * 250; 
-                
                 const arms = Math.floor(2 + Math.random() * 3); 
-                
                 const spinSpeed = (0.005 + Math.random() * 0.01) * (Math.random() > 0.5 ? 1 : -1);
-                
                 const tiltX = (Math.random() - 0.5) * 1.0; const tiltZ = (Math.random() - 0.5) * 1.0;
 
                 spiralGalaxies.push({ idx: g, x: centerX, y: centerY, z: centerZ, tiltX, tiltZ, currentAngle: 0, spinSpeed });
@@ -605,8 +647,6 @@
                 }
             }
 
-            // ================== 背景星云 (使用剩余粒子) ==================
-            // 注意：由于丝带粒子大幅增加，remainingParticles 会减少，从而自动“从边界轮廓粒子中分配”
             const hullCount = Math.floor((TOTAL_PARTICLES - particleIdx) * 0.3); 
             const hullHue = Math.random();
             const hullColor = new THREE.Color().setHSL(hullHue, 0.8, 0.9);
@@ -783,34 +823,84 @@
             if (currentShape === 'saturn' && saturnStorms.length > 0) {
                 const RENDER_SIZE = 180;
                 saturnStorms.forEach(storm => {
-                    storm.theta += storm.driftSpeed * 0.02; 
-                    const wave = Math.sin(timeNow * 0.5 + storm.idx) * 0.002;
-                    storm.phi += wave;
+                    if (storm.type !== 'hexagon') {
+                        storm.theta += storm.driftSpeed * 0.02; 
+                        const wave = Math.sin(timeNow * 0.5 + storm.idx) * 0.002;
+                        storm.phi += wave;
+                    }
                 });
-                for (let i = 0; i < 3000; i++) {
+                
+                // 粒子总数 12000
+                for (let i = 0; i < 12000; i++) {
                     const data = stormParticlesData[i];
                     if (!data) continue;
                     const storm = saturnStorms[data.stormIdx];
-                    const currentRot = data.localAngle + timeNow * storm.speed;
-                    const localX = data.localR * Math.cos(currentRot);
-                    const localZ = data.localR * Math.sin(currentRot);
-                    const cx = RENDER_SIZE * Math.sin(storm.phi) * Math.cos(storm.theta);
-                    const cy = RENDER_SIZE * Math.cos(storm.phi);
-                    const cz = RENDER_SIZE * Math.sin(storm.phi) * Math.sin(storm.theta);
-                    const nx = Math.sin(storm.phi) * Math.cos(storm.theta);
-                    const ny = Math.cos(storm.phi);
-                    const nz = Math.sin(storm.phi) * Math.sin(storm.theta);
-                    const tx = -Math.sin(storm.theta); const ty = 0; const tz = Math.cos(storm.theta);
-                    const bx = ny * tz - nz * ty; const by = nz * tx - nx * tz; const bz = nx * ty - ny * tx;
-                    targetPositions[i*3]   = cx + localX * tx + localZ * bx + data.yOffset * nx;
-                    targetPositions[i*3+1] = cy + localX * ty + localZ * by + data.yOffset * ny;
-                    targetPositions[i*3+2] = cz + localX * tz + localZ * bz + data.yOffset * nz;
+
+                    if (storm.type === 'hexagon') {
+                        // --- 真实的六边形动画逻辑 (Spherical) ---
+                        
+                        // 1. 旋转角度
+                        const currentRot = data.localAngle + timeNow * storm.speed;
+                        
+                        // 2. 核心六边形塑形算法: 1 / cos(angle_in_sector)
+                        // 这能让圆形的纬度圈变成直线的六边形
+                        // 将角度归一化到 [-30, 30] 度区间
+                        const segmentAngle = (currentRot % (Math.PI / 3)) - (Math.PI / 6);
+                        // 计算六边形半径缩放因子 (中心到边的距离 / cos(theta))
+                        let hexFactor = 1.0 / Math.cos(segmentAngle);
+                        
+                        // 3. 柔和边缘处理
+                        // 我们不希望整个北极都是硬直的六边形，越靠近极点越圆，越靠近边缘越直
+                        // 使用 basePhi 作为混合因子 (越大约靠外)
+                        // 只有在外圈 (basePhi > 0.15) 才显现出明显的六边形特征
+                        const edgeMix = THREE.MathUtils.smoothstep(data.basePhi, 0.05, 0.35);
+                        const effectiveFactor = THREE.MathUtils.lerp(1.0, hexFactor, edgeMix * 0.8); // 0.8 稍微保留一点点圆角
+                        
+                        // 4. 计算球面坐标
+                        // 修正后的纬度 (Phi)
+                        const finalPhi = data.basePhi * effectiveFactor;
+                        
+                        // 5. 转为笛卡尔坐标 (Spherical to Cartesian)
+                        // y = R * cos(phi) (高度)
+                        // h = R * sin(phi) (水平面半径)
+                        const y = RENDER_SIZE * Math.cos(finalPhi);
+                        const h = RENDER_SIZE * Math.sin(finalPhi);
+                        
+                        // x, z 基于旋转后的角度
+                        const x = h * Math.cos(currentRot);
+                        const z = h * Math.sin(currentRot);
+                        
+                        // 6. 加上极其微小的表面起伏 (Adhesion + Noise)
+                        // 沿法线方向偏移
+                        const nx = x / RENDER_SIZE; 
+                        const ny = y / RENDER_SIZE;
+                        const nz = z / RENDER_SIZE;
+                        
+                        targetPositions[i*3]   = x + nx * data.altitudeNoise;
+                        targetPositions[i*3+1] = y + ny * data.altitudeNoise;
+                        targetPositions[i*3+2] = z + nz * data.altitudeNoise;
+
+                    } else {
+                        // 普通风暴 (Plane Projection Logic)
+                        const currentRot = data.localAngle + timeNow * storm.speed;
+                        const localX = data.localR * Math.cos(currentRot);
+                        const localZ = data.localR * Math.sin(currentRot);
+                        const cx = RENDER_SIZE * Math.sin(storm.phi) * Math.cos(storm.theta);
+                        const cy = RENDER_SIZE * Math.cos(storm.phi);
+                        const cz = RENDER_SIZE * Math.sin(storm.phi) * Math.sin(storm.theta);
+                        const nx = Math.sin(storm.phi) * Math.cos(storm.theta);
+                        const ny = Math.cos(storm.phi);
+                        const nz = Math.sin(storm.phi) * Math.sin(storm.theta);
+                        const tx = -Math.sin(storm.theta); const ty = 0; const tz = Math.cos(storm.theta);
+                        const bx = ny * tz - nz * ty; const by = nz * tx - nx * tz; const bz = nx * ty - ny * tx;
+                        targetPositions[i*3]   = cx + localX * tx + localZ * bx + data.yOffset * nx;
+                        targetPositions[i*3+1] = cy + localX * ty + localZ * by + data.yOffset * ny;
+                        targetPositions[i*3+2] = cz + localX * tz + localZ * bz + data.yOffset * nz;
+                    }
                 }
             }
 
-            // ================= 宇宙动画更新 =================
             if (currentShape === 'universe') {
-                // --- Type 1: 风暴动画 ---
                 if (universeStorms.length > 0) {
                     const bounds = { x: 120, y: 60, z: 100 }; 
                     universeStorms.forEach(storm => {
@@ -820,7 +910,6 @@
                         if (Math.abs(storm.z) > bounds.z) storm.vz *= -1;
                     });
                     
-                    // 修复：使用正确的风暴粒子总数 (4 * 3000 = 12000)
                     const totalStormParticles = universeStorms.length * 3000; 
                     for(let i = 0; i < totalStormParticles; i++) {
                         const data = universeStormParticlesData[i]; if(!data) continue;
@@ -833,11 +922,9 @@
                     }
                 }
 
-                // --- Type 3: 漩涡星系动画 (更新版) ---
                 if (spiralGalaxies.length > 0) {
                     spiralGalaxies.forEach(gal => { gal.currentAngle += timeNow * gal.spinSpeed; });
                     
-                    // 修复：计算星系粒子的起始索引：风暴(4*3000) + 丝带(2*8000) = 12000 + 16000 = 28000
                     const galaxyStartIdx = (universeStorms.length * 3000) + (2 * 8000); 
                     const totalGalaxyParticles = spiralGalaxies.length * 1500;
 
@@ -1038,24 +1125,22 @@
             }
         }
 
-        // ================= 初始化与运行 =================
-        detectDevice(); // 检测设备类型
+        detectDevice(); 
 
         const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
         hands.setOptions({
             maxNumHands: MAX_HANDS, 
-            modelComplexity: isMobileDevice ? 0 : 1, // 移动端降低复杂度以提升帧率
+            modelComplexity: isMobileDevice ? 0 : 1, 
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
         });
         hands.onResults(onResults);
         
-        // 摄像头参数优化：根据设备类型最大化摄像范围
         const cameraConfig = {
             onFrame: async () => { await hands.send({image: document.getElementById('input_video')}); },
-            width: isMobileDevice ? 1280 : 1920, // 移动端720p（广角），PC端1080p
+            width: isMobileDevice ? 1280 : 1920, 
             height: isMobileDevice ? 720 : 1080,
-            facingMode: 'user' // 优先使用前置摄像头
+            facingMode: 'user' 
         };
 
         const cameraUtils = new Camera(document.getElementById('input_video'), cameraConfig);
@@ -1083,4 +1168,4 @@
         initThree();
     </script>
 </body>
-</html>
+</html>```
