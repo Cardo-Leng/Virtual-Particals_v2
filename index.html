@@ -831,7 +831,7 @@
                  const dx = p1.x - p2.x;
                  const dy = p1.y - p2.y;
                  const dist = Math.sqrt(dx*dx + dy*dy);
-                 targetHandScreenScale = dist * 9.0; 
+                 targetHandScreenScale = dist * 5.0; 
                  targetHandScreenScale = THREE.MathUtils.clamp(targetHandScreenScale, 0.4, 3.0);
             }
 
@@ -1054,7 +1054,7 @@
                     }
                 }
 
-                const posSpeed = (currentShape === 'hand' || currentShape === 'flower' || currentShape === 'heart' || currentShape === 'saturn' || currentShape === 'universe') ? (currentShape === 'universe' ? 0.06 : 0.2) : 0.04;
+                const posSpeed = (currentShape === 'hand' || currentShape === 'flower' || currentShape === 'heart' || currentShape === 'saturn' || currentShape === 'universe') ? (currentShape === 'universe' ? 0.06 : 0.15) : 0.06;
                 
                 positions[i*3]   += (tx * effectiveScale - px) * posSpeed;
                 positions[i*3+1] += (ty * effectiveScale - py) * posSpeed;
